@@ -66,4 +66,4 @@ const PORT = 5000;
 
 app.listen(PORT, () => {
     console.log(`MediKiosk backend running on http://localhost:${PORT}`);
-})
+});
