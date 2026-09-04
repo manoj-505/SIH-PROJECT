@@ -1,0 +1,34 @@
+{
+  "complaint": "abdominal pain",
+  "keywords": [
+    "abdominal pain",
+    "stomach pain",
+    "belly pain",
+    "pet dard",
+    "पेट दर्द"
+  ],
+  "fields": [
+    "onset",
+    "duration",
+    "location",
+    "character",
+    "severity",
+    "radiation",
+    "food_relation",
+    "bowel_changes",
+    "vomiting",
+    "associated_symptoms"
+  ],
+  "questions": {
+    "onset": "When did the abdominal pain start?",
+    "duration": "How long have you had the pain?",
+    "location": "Where exactly in your abdomen do you feel the pain?",
+    "character": "How would you describe the pain?",
+    "severity": "On a scale of 0 to 10, how severe is it?",
+    "radiation": "Does the pain spread to your back, shoulder, or another area?",
+    "food_relation": "Does eating food make the pain better or worse?",
+    "bowel_changes": "Have you noticed any changes in your bowel movements?",
+    "vomiting": "Have you experienced vomiting?",
+    "associated_symptoms": "Do you have any other symptoms?"
+  }
+}
