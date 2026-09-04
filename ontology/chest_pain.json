@@ -1,0 +1,32 @@
+{
+  "complaint": "chest pain",
+  "keywords": [
+    "chest pain",
+    "chest ache",
+    "pain in chest",
+    "seene mein dard",
+    "सीने में दर्द"
+  ],
+  "fields": [
+    "onset",
+    "duration",
+    "location",
+    "character",
+    "radiation",
+    "severity",
+    "aggravating_factors",
+    "relieving_factors",
+    "associated_symptoms"
+  ],
+  "questions": {
+    "onset": "When did the chest pain start?",
+    "duration": "How long does the pain usually last?",
+    "location": "Where exactly do you feel the chest pain?",
+    "character": "How would you describe the pain?",
+    "radiation": "Does the pain spread anywhere, such as your arm, shoulder, jaw, or back?",
+    "severity": "On a scale of 0 to 10, how severe is the pain?",
+    "aggravating_factors": "Does anything make the pain worse?",
+    "relieving_factors": "Does anything make the pain better?",
+    "associated_symptoms": "Do you have any other symptoms along with the chest pain?"
+  }
+}
