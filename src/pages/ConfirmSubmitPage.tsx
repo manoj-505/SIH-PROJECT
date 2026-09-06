@@ -32,18 +32,22 @@ export const ConfirmSubmitPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [issuedToken, setIssuedToken] = useState<TokenQueueItem | null>(activeToken);
 
-  const handleConfirmSubmit = () => {
+  const handleConfirmSubmit = async () => {
     if (!finalConsentAgreed) {
       alert('Please agree to transmit your pre-consultation record to proceed.');
       return;
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      const generated = submitAndGenerateToken();
+    try {
+      const generated = await submitAndGenerateToken();
       setIssuedToken(generated);
+    } catch (err) {
+      alert('Failed to submit. Please check your connection and try again.');
+      console.error(err);
+    } finally {
       setIsSubmitting(false);
-    }, 900);
+    }
   };
 
   const spokenConfirmPrompt = language === 'hi'

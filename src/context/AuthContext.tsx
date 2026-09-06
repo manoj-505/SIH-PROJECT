@@ -2,14 +2,16 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { PatientUser, DoctorUser } from '../types';
 import { storageService } from '../services/storageService';
 
+const API_BASE = "http://localhost:5000/api";
+
 interface AuthContextType {
   patient: PatientUser | null;
   doctor: DoctorUser | null;
   activeRole: 'patient' | 'doctor' | null;
   loginPatientWithId: (idType: 'abha' | 'aadhaar', idValue: string) => boolean;
-  registerPatient: (name: string, age: number, gender: PatientUser['gender'], mobile: string) => PatientUser;
+  registerPatient: (name: string, age: number, gender: PatientUser['gender'], mobile: string) => Promise<PatientUser>;
   loginDoctor: (username: string) => boolean;
-  registerDoctor: (doctorData: Omit<DoctorUser, 'id' | 'isVerified'>) => DoctorUser;
+  registerDoctor: (doctorData: Omit<DoctorUser, 'id' | 'isVerified'>) => Promise<DoctorUser>;
   logout: () => void;
   switchRole: (role: 'patient' | 'doctor' | null) => void;
 }
@@ -51,21 +53,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return true;
   };
 
-  const registerPatient = (
+  const registerPatient = async (
     name: string,
     age: number,
     gender: PatientUser['gender'],
     mobile: string
-  ): PatientUser => {
-    const newPatient: PatientUser = {
-      id: `p-${Date.now()}`,
-      name,
-      age,
-      gender,
-      mobile,
-      abhaId: `${mobile.slice(0, 4)}-${mobile.slice(4, 8)}-${Math.floor(1000 + Math.random() * 9000)}@abdm`,
-      registeredAt: new Date().toISOString()
-    };
+  ): Promise<PatientUser> => {
+    const response = await fetch(`${API_BASE}/patients`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, age, gender, mobile })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to register patient");
+    }
+
+    const newPatient: PatientUser = data.patient;
     setPatient(newPatient);
     storageService.savePatient(newPatient);
     setActiveRole('patient');
@@ -100,12 +104,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return true;
   };
 
-  const registerDoctor = (doctorData: Omit<DoctorUser, 'id' | 'isVerified'>): DoctorUser => {
-    const newDoc: DoctorUser = {
-      ...doctorData,
-      id: `doc-${Date.now()}`,
-      isVerified: false // Flagged as pending hospital credential verification per specs
-    };
+  const registerDoctor = async (
+    doctorData: Omit<DoctorUser, 'id' | 'isVerified'>
+  ): Promise<DoctorUser> => {
+    const response = await fetch(`${API_BASE}/doctors`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(doctorData)
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to register doctor");
+    }
+
+    const newDoc: DoctorUser = data.doctor;
     setDoctor(newDoc);
     storageService.saveDoctor(newDoc);
     setActiveRole('doctor');

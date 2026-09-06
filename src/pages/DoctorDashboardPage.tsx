@@ -28,6 +28,8 @@ import { storageService } from '../services/storageService';
 import { ocrService } from '../services/ocrService';
 import { TokenQueueItem, ClinicalSummary, ScannedDocument } from '../types';
 
+const API_BASE = "http://localhost:5000/api";
+
 export const DoctorDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { doctor, logout } = useAuth();
@@ -50,31 +52,47 @@ export const DoctorDashboardPage: React.FC = () => {
     loadDashboardData();
   }, []);
 
-  const loadDashboardData = () => {
-    const q = storageService.getQueue();
-    setQueue(q);
+  const fetchSummaryById = async (summaryId: string): Promise<ClinicalSummary | null> => {
+    try {
+      const response = await fetch(`${API_BASE}/summaries/${summaryId}`);
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (err) {
+      console.error('Failed to fetch summary', err);
+      return null;
+    }
+  };
 
-    const activeNo = storageService.getActiveToken() || (q[0]?.tokenNo ?? 'TK-A101');
-    setActiveTokenNo(activeNo);
+  const loadDashboardData = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/queue`);
+      const q: TokenQueueItem[] = response.ok ? await response.json() : [];
+      setQueue(q);
 
-    // Find summary for this token
-    const item = q.find((t) => t.tokenNo === activeNo) || q[0];
-    if (item) {
-      const sum = storageService.getSummary(item.summaryId);
-      setActiveSummary(sum);
-      setDoctorNotes(sum?.doctorNotes || '');
+      const activeNo = storageService.getActiveToken() || (q[0]?.tokenNo ?? 'TK-A101');
+      setActiveTokenNo(activeNo);
+
+      const item = q.find((t) => t.tokenNo === activeNo) || q[0];
+      if (item && item.summaryId) {
+        const sum = await fetchSummaryById(item.summaryId);
+        setActiveSummary(sum);
+        setDoctorNotes(sum?.doctorNotes || '');
+        setIsSignedOff(sum?.doctorApproved || false);
+      }
+    } catch (err) {
+      console.error('Failed to load dashboard data', err);
     }
 
     const docs = storageService.getPatientDocuments();
     setPatientDocs(docs.length ? docs : ocrService.getSampleDocuments());
   };
 
-  const handleSelectToken = (tokenNo: string) => {
+  const handleSelectToken = async (tokenNo: string) => {
     setActiveTokenNo(tokenNo);
     storageService.setActiveToken(tokenNo);
     const item = queue.find((t) => t.tokenNo === tokenNo);
-    if (item) {
-      const sum = storageService.getSummary(item.summaryId);
+    if (item && item.summaryId) {
+      const sum = await fetchSummaryById(item.summaryId);
       setActiveSummary(sum);
       setDoctorNotes(sum?.doctorNotes || '');
       setIsSignedOff(sum?.doctorApproved || false);
@@ -95,32 +113,42 @@ export const DoctorDashboardPage: React.FC = () => {
     }
   };
 
+  // Note: backend doesn't yet have a "save draft notes" route separate from approval,
+  // so this only updates local UI state for now — notes persist to the database
+  // once "Accept & Finalize" is clicked.
   const handleSaveDraft = () => {
     if (activeSummary) {
-      const updated: ClinicalSummary = {
-        ...activeSummary,
-        doctorNotes,
-        doctorApproved: false
-      };
-      storageService.saveSummary(updated);
-      setActiveSummary(updated);
+      setActiveSummary({ ...activeSummary, doctorNotes });
       setIsEditingSummary(false);
     }
   };
 
-  const handleAcceptAndSignOff = () => {
-    if (activeSummary) {
-      const updated: ClinicalSummary = {
-        ...activeSummary,
-        doctorNotes,
-        doctorApproved: true
-      };
-      storageService.saveSummary(updated);
-      setActiveSummary(updated);
+  const handleAcceptAndSignOff = async () => {
+    if (!activeSummary) return;
+
+    try {
+      const approveResponse = await fetch(`${API_BASE}/summaries/${activeSummary.id}/approve`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ doctorNotes })
+      });
+      if (!approveResponse.ok) {
+        throw new Error("Failed to approve summary");
+      }
+
+      await fetch(`${API_BASE}/queue/${activeTokenNo}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "completed" })
+      });
+
+      setActiveSummary({ ...activeSummary, doctorNotes, doctorApproved: true });
       setIsSignedOff(true);
-      storageService.updateTokenStatus(activeTokenNo, 'completed');
-      loadDashboardData();
+      await loadDashboardData();
       alert(`Case for Token ${activeTokenNo} successfully finalized and synced to Hospital HIS!`);
+    } catch (err) {
+      alert('Failed to finalize case. Please check your connection and try again.');
+      console.error(err);
     }
   };
 

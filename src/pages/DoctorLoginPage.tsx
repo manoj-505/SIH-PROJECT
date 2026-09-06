@@ -50,29 +50,34 @@ export const DoctorLoginPage: React.FC = () => {
     navigate('/doctor-dashboard');
   };
 
-  const handleNewSubmit = (e: React.FormEvent) => {
+  const handleNewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !qualification.trim()) {
       alert('Please fill out Name and Qualification');
       return;
     }
 
-    const newDoc = registerDoctor({
-      username: name.toLowerCase().replace(/\s+/g, '.'),
-      name: name.startsWith('Dr.') ? name : `Dr. ${name}`,
-      age: parseInt(age || '35', 10),
-      gender,
-      mobile,
-      experienceYears: parseInt(experienceYears || '5', 10),
-      qualification,
-      regNumber,
-      department,
-      roomNo: 'OPD Room 104',
-      certificateUrl: certificateUrl || undefined
-    });
+    try {
+      const newDoc = await registerDoctor({
+        username: name.toLowerCase().replace(/\s+/g, '.'),
+        name: name.startsWith('Dr.') ? name : `Dr. ${name}`,
+        age: parseInt(age || '35', 10),
+        gender,
+        mobile,
+        experienceYears: parseInt(experienceYears || '5', 10),
+        qualification,
+        regNumber,
+        department,
+        roomNo: 'OPD Room 104',
+        certificateUrl: certificateUrl || undefined
+      });
 
-    setPendingDoctorInfo(newDoc);
-    setRegistrationSubmitted(true);
+      setPendingDoctorInfo(newDoc);
+      setRegistrationSubmitted(true);
+    } catch (err) {
+      alert('Registration failed. Please check your connection and try again.');
+      console.error(err);
+    }
   };
 
   return (

@@ -16,14 +16,31 @@ import { Navbar } from '../components/common/Navbar';
 import { storageService } from '../services/storageService';
 import { TokenQueueItem } from '../types';
 
+const API_BASE = "http://localhost:5000/api";
+
 export const DoctorOpdListPage: React.FC = () => {
   const navigate = useNavigate();
   const [queue, setQueue] = useState<TokenQueueItem[]>([]);
   const [filter, setFilter] = useState<'all' | 'emergency' | 'waiting' | 'completed'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
+  const fetchQueue = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/queue`);
+      if (response.ok) {
+        const data: TokenQueueItem[] = await response.json();
+        setQueue(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch queue', err);
+    }
+  };
+
   useEffect(() => {
-    setQueue(storageService.getQueue());
+    fetchQueue();
+    // Refresh every 5 seconds so new patients/status changes show up live
+    const interval = setInterval(fetchQueue, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const filteredQueue = queue.filter((item) => {

@@ -69,7 +69,7 @@ export const PatientLoginPage: React.FC = () => {
     navigate('/patient-home');
   };
 
-  const handleNewSubmit = (e: React.FormEvent) => {
+  const handleNewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !age) {
       alert('Please fill out your Name and Age');
@@ -79,8 +79,13 @@ export const PatientLoginPage: React.FC = () => {
       alert('Please verify mobile number via OTP first');
       return;
     }
-    registerPatient(name, parseInt(age, 10), gender, mobile);
-    navigate('/patient-home');
+    try {
+      await registerPatient(name, parseInt(age, 10), gender, mobile);
+      navigate('/patient-home');
+    } catch (err) {
+      alert('Registration failed. Please check your connection and try again.');
+      console.error(err);
+    }
   };
 
   return (
