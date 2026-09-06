@@ -13,6 +13,8 @@ import { ocrService } from '../services/ocrService';
 import { useAuth } from './AuthContext';
 import { useLanguage } from './LanguageContext';
 
+const API_BASE = "http://localhost:5000/api";
+
 interface KioskSessionContextType {
   documents: ScannedDocument[];
   addDocument: (doc: ScannedDocument) => void;
@@ -26,9 +28,10 @@ interface KioskSessionContextType {
   emergencyTriggers: string[];
   dismissEmergencyModal: () => void;
   summary: ClinicalSummary | null;
-  generateSummary: (tokenNo: string) => ClinicalSummary;
+  generateSummary: (tokenNo: string) => Promise<ClinicalSummary>;
+  generatePreviewSummary: (tokenNo: string) => ClinicalSummary;
   activeToken: TokenQueueItem | null;
-  submitAndGenerateToken: () => TokenQueueItem;
+  submitAndGenerateToken: () => Promise<TokenQueueItem>;
   resetSession: () => void;
   loadSampleSession: () => void;
 }
@@ -96,7 +99,6 @@ export const KioskSessionProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [summary, setSummary] = useState<ClinicalSummary | null>(null);
   const [activeToken, setActiveToken] = useState<TokenQueueItem | null>(null);
 
-  // Initialize with sample pre-loaded records if none exist
   useEffect(() => {
     const savedDocs = storageService.getPatientDocuments();
     if (savedDocs && savedDocs.length > 0) {
@@ -130,7 +132,6 @@ export const KioskSessionProvider: React.FC<{ children: ReactNode }> = ({ childr
     setQuestionnaire((prev) => {
       const nextState = { ...prev, ...updates };
 
-      // Continuously evaluate for emergency / red flags
       const evaluation = clinicalAiService.evaluateRedFlags(nextState);
       if (evaluation.isEmergency && !isEmergencyAlert) {
         setIsEmergencyAlert(true);
@@ -147,7 +148,9 @@ export const KioskSessionProvider: React.FC<{ children: ReactNode }> = ({ childr
     setIsEmergencyAlert(false);
   };
 
-  const generateSummary = (tokenNo: string): ClinicalSummary => {
+  // Local-only preview — does NOT save to backend. Safe to call repeatedly
+  // (e.g. on page load, or after the user edits and re-checks their summary).
+  const generatePreviewSummary = (tokenNo: string): ClinicalSummary => {
     const p = patient || {
       id: 'patient-demo-01',
       name: 'Aarav Sharma',
@@ -157,46 +160,86 @@ export const KioskSessionProvider: React.FC<{ children: ReactNode }> = ({ childr
       registeredAt: new Date().toISOString()
     };
 
-    const newSummary = clinicalAiService.generateClinicalSummary(
+    return clinicalAiService.generateClinicalSummary(
       questionnaire,
       documents,
       p,
       language,
       tokenNo
     );
-
-    setSummary(newSummary);
-    storageService.saveSummary(newSummary);
-    return newSummary;
   };
 
-  const submitAndGenerateToken = (): TokenQueueItem => {
-    const queue = storageService.getQueue();
-    const tokenIndex = queue.length + 101;
+  // Real save — persists to the backend. Only call this once, at final submission.
+  const generateSummary = async (tokenNo: string): Promise<ClinicalSummary> => {
+    const draftSummary = generatePreviewSummary(tokenNo);
+
+    const response = await fetch(`${API_BASE}/summaries`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tokenNo: draftSummary.tokenNo,
+        patientId: draftSummary.patientId,
+        patientName: draftSummary.patientName,
+        age: draftSummary.age,
+        gender: draftSummary.gender,
+        mobile: draftSummary.mobile,
+        abhaId: draftSummary.abhaId,
+        priority: draftSummary.priority,
+        emergencyNotice: draftSummary.emergencyNotice,
+        chiefComplaint: draftSummary.chiefComplaint,
+        hpiClinicalSummary: draftSummary.hpiClinicalSummary,
+        pastMedicalSummary: draftSummary.pastMedicalSummary,
+        drugAllergySummary: draftSummary.drugAllergySummary,
+        familyPersonalSummary: draftSummary.familyPersonalSummary,
+        rosSummary: draftSummary.rosSummary,
+        ayushSummary: draftSummary.ayushSummary,
+        investigationSummary: draftSummary.investigationSummary,
+        patientFriendlySummary: draftSummary.patientFriendlySummary
+      })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to save summary");
+    }
+
+    const savedSummary: ClinicalSummary = data.summary;
+    setSummary(savedSummary);
+    storageService.saveSummary(savedSummary);
+    return savedSummary;
+  };
+
+  const submitAndGenerateToken = async (): Promise<TokenQueueItem> => {
+    const queueResponse = await fetch(`${API_BASE}/queue`);
+    const currentQueue: TokenQueueItem[] = queueResponse.ok ? await queueResponse.json() : [];
+    const tokenIndex = currentQueue.length + 101;
     const tokenNo = `TK-A${tokenIndex}`;
 
-    // Generate clinical summary
-    const newSummary = generateSummary(tokenNo);
+    const newSummary = await generateSummary(tokenNo);
 
-    const tokenItem: TokenQueueItem = {
-      tokenNo,
-      patientId: patient?.id || 'p-new',
-      patientName: patient?.name || 'Walk-in Patient',
-      age: patient?.age || 35,
-      gender: patient?.gender || 'Male',
-      chiefComplaint: questionnaire.chiefComplaint || 'Consultation Request',
-      priority: newSummary.priority,
-      status: 'waiting',
-      roomNo: 'OPD Room 104',
-      doctorName: 'Dr. Anand Verma, MD',
-      queuePosition: queue.length + 1,
-      estimatedWaitMins: (queue.length + 1) * 8,
-      createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      summaryId: newSummary.id
-    };
+    const response = await fetch(`${API_BASE}/queue`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tokenNo,
+        patientId: patient?.id || 'p-new',
+        patientName: patient?.name || 'Walk-in Patient',
+        age: patient?.age || 35,
+        gender: patient?.gender || 'Male',
+        chiefComplaint: questionnaire.chiefComplaint || 'Consultation Request',
+        priority: newSummary.priority,
+        roomNo: 'OPD Room 104',
+        doctorName: 'Dr. Anand Verma, MD',
+        estimatedWaitMins: (currentQueue.length + 1) * 8,
+        summaryId: newSummary.id
+      })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to add token to queue");
+    }
 
+    const tokenItem: TokenQueueItem = data.token;
     setActiveToken(tokenItem);
-    storageService.addTokenToQueue(tokenItem);
     return tokenItem;
   };
 
@@ -257,6 +300,7 @@ export const KioskSessionProvider: React.FC<{ children: ReactNode }> = ({ childr
         dismissEmergencyModal,
         summary,
         generateSummary,
+        generatePreviewSummary,
         activeToken,
         submitAndGenerateToken,
         resetSession,

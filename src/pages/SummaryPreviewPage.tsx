@@ -21,7 +21,7 @@ import { ClinicalSummary } from '../types';
 
 export const SummaryPreviewPage: React.FC = () => {
   const navigate = useNavigate();
-  const { questionnaire, documents, updateQuestionnaire, generateSummary } = useKioskSession();
+  const { questionnaire, documents, updateQuestionnaire, generatePreviewSummary } = useKioskSession();
   const { t, language } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<'patient' | 'doctor'>('patient');
@@ -33,8 +33,8 @@ export const SummaryPreviewPage: React.FC = () => {
   const [editSeverity, setEditSeverity] = useState<number>(5);
 
   useEffect(() => {
-    // Generate draft summary preview
-    const draft = generateSummary('DRAFT-PREVIEW');
+    // Generate draft summary preview (local only, not saved to backend)
+    const draft = generatePreviewSummary('DRAFT-PREVIEW');
     setCurrentSummary(draft);
     setEditChiefComplaint(questionnaire.chiefComplaint);
     setEditSeverity(questionnaire.severity);
@@ -45,7 +45,7 @@ export const SummaryPreviewPage: React.FC = () => {
       chiefComplaint: editChiefComplaint,
       severity: editSeverity
     });
-    const updatedDraft = generateSummary('DRAFT-PREVIEW');
+    const updatedDraft = generatePreviewSummary('DRAFT-PREVIEW');
     setCurrentSummary(updatedDraft);
     setIsEditing(false);
   };
