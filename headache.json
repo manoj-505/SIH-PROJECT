@@ -1,0 +1,22 @@
+{
+  "complaint": "headache",
+  "keywords": ["headache", "head pain", "sar dard", "सिर दर्द"],
+  "fields": [
+    "onset",
+    "duration",
+    "location",
+    "character",
+    "severity",
+    "frequency",
+    "associated_symptoms"
+  ],
+  "questions": {
+    "onset": "When did the headache start?",
+    "duration": "How long does the headache usually last?",
+    "location": "Where exactly do you feel the headache?",
+    "character": "How would you describe the headache?",
+    "severity": "On a scale of 0 to 10, how severe is the headache?",
+    "frequency": "How often do you experience these headaches?",
+    "associated_symptoms": "Do you have symptoms such as vomiting, vision changes, weakness, dizziness, or difficulty speaking?"
+  }
+}

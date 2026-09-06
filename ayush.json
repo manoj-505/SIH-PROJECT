@@ -1,0 +1,29 @@
+{
+  "complaint": "ayush",
+  "fields": [
+    "prakriti",
+    "vikriti",
+    "sara",
+    "samhanana",
+    "pramana",
+    "satmya",
+    "sattva",
+    "ahara_shakti",
+    "vyayama_shakti",
+    "vaya",
+    "ahara_vihara"
+  ],
+  "questions": {
+    "prakriti": "Have you been assessed by an Ayurvedic practitioner for your Prakriti (body constitution)? If yes, please tell us what was recorded.",
+    "vikriti": "Has an Ayurvedic practitioner previously identified any current imbalance or Vikriti? If yes, please describe what was recorded.",
+    "sara": "Has your tissue quality or Sara been assessed by an Ayurvedic practitioner? If yes, please tell us the recorded assessment.",
+    "samhanana": "Has your body build or Samhanana been assessed? If yes, please describe the recorded assessment.",
+    "pramana": "If previously assessed, do you have any recorded measurements such as height, weight, or other Pramana measurements?",
+    "satmya": "Are there foods, routines, medicines, or environmental conditions that you tolerate particularly well or poorly?",
+    "sattva": "If previously assessed by a practitioner, has your Sattva or mental strength been recorded? If yes, please describe it.",
+    "ahara_shakti": "How would you describe your appetite and ability to digest food? For example, poor, moderate, or good.",
+    "vyayama_shakti": "How much physical activity or exercise can you comfortably do? For example, low, moderate, or high.",
+    "vaya": "What is your age, and if previously assessed, was your age-related Ayurvedic assessment recorded?",
+    "ahara_vihara": "Please describe your usual diet, daily routine, sleep pattern, physical activity, and other important lifestyle habits."
+  }
+}
