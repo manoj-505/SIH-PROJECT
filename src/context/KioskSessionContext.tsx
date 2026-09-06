@@ -26,6 +26,7 @@ interface KioskSessionContextType {
   updateQuestionnaire: (updates: Partial<QuestionnaireState>) => void;
   isEmergencyAlert: boolean;
   emergencyTriggers: string[];
+  checkEmergencyStatus: () => boolean;
   dismissEmergencyModal: () => void;
   summary: ClinicalSummary | null;
   generateSummary: (tokenNo: string) => Promise<ClinicalSummary>;
@@ -129,21 +130,23 @@ export const KioskSessionProvider: React.FC<{ children: ReactNode }> = ({ childr
   const isConsentValid = consent.dataCapture && consent.documentProcessing && consent.hisSharing;
 
   const updateQuestionnaire = (updates: Partial<QuestionnaireState>) => {
-    setQuestionnaire((prev) => {
-      const nextState = { ...prev, ...updates };
+  setQuestionnaire((prev) => ({ ...prev, ...updates }));
+};
 
-      const evaluation = clinicalAiService.evaluateRedFlags(nextState);
-      if (evaluation.isEmergency && !isEmergencyAlert) {
-        setIsEmergencyAlert(true);
-        setEmergencyTriggers(evaluation.triggers);
-        nextState.isEmergencyAlert = true;
-        nextState.emergencyTriggers = evaluation.triggers;
-      }
-
-      return nextState;
-    });
-  };
-
+// Call this only once ALL questions have been answered (e.g. on the final review/confirm step)
+const checkEmergencyStatus = (): boolean => {
+  const evaluation = clinicalAiService.evaluateRedFlags(questionnaire);
+  if (evaluation.isEmergency) {
+    setIsEmergencyAlert(true);
+    setEmergencyTriggers(evaluation.triggers);
+    setQuestionnaire((prev) => ({
+      ...prev,
+      isEmergencyAlert: true,
+      emergencyTriggers: evaluation.triggers
+    }));
+  }
+  return evaluation.isEmergency;
+};
   const dismissEmergencyModal = () => {
     setIsEmergencyAlert(false);
   };
@@ -285,7 +288,7 @@ export const KioskSessionProvider: React.FC<{ children: ReactNode }> = ({ childr
   };
 
   return (
-    <KioskSessionContext.Provider
+        <KioskSessionContext.Provider
       value={{
         documents,
         addDocument,
@@ -297,6 +300,7 @@ export const KioskSessionProvider: React.FC<{ children: ReactNode }> = ({ childr
         updateQuestionnaire,
         isEmergencyAlert,
         emergencyTriggers,
+        checkEmergencyStatus,
         dismissEmergencyModal,
         summary,
         generateSummary,

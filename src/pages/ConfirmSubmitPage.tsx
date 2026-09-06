@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ShieldCheck,
@@ -23,8 +23,14 @@ export const ConfirmSubmitPage: React.FC = () => {
     activeToken,
     resetSession,
     questionnaire,
-    documents
+    documents,
+    checkEmergencyStatus
   } = useKioskSession();
+
+    useEffect(() => {
+    // All questions are answered by the time the user reaches this page — check now
+    checkEmergencyStatus();
+  }, []);
 
   const { t, language } = useLanguage();
 
